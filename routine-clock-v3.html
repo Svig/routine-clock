@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Routine Clock</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #12141c;
+    --bg-card: #1c2029;
+    --bg-card-2: #232838;
+    --current: #f2a65a;
+    --current-dim: #7a5a34;
+    --next: #5fc9b8;
+    --next-dim: #35564f;
+    --past: #363c4c;
+    --text: #f3efe6;
+    --text-dim: #8b90a0;
+    --danger: #e2665a;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Sora', sans-serif;
+  }
+  *{ box-sizing: border-box; }
+  html,body{ height:100%; }
+  body{
+    margin:0;
+    background: radial-gradient(circle at 20% 0%, #1a1e2c 0%, var(--bg) 55%);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+  }
+  header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding: 18px 28px;
+  }
+  header h1{
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--text-dim);
+    margin:0;
+  }
+  header h1 span{ color: var(--text); }
+  .icon-btn{
+    background: var(--bg-card);
+    border: 1px solid #2c3143;
+    color: var(--text);
+    width: 38px; height:38px;
+    border-radius: 10px;
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+    transition: background .15s ease, transform .15s ease;
+  }
+  .icon-btn:hover{ background: var(--bg-card-2); }
+  .icon-btn:active{ transform: scale(0.94); }
+  .icon-btn svg{ width:18px; height:18px; }
+
+  main{
+    flex:1;
+    display:flex;
+    gap: 22px;
+    padding: 0 28px 28px 28px;
+    align-items: stretch;
+  }
+  @media (max-width: 820px){
+    main{ flex-direction: column; }
+  }
+
+  .now-card{
+    flex: 1.4;
+    background: linear-gradient(160deg, #232030 0%, #1a1f2c 60%);
+    border: 1px solid #322a38;
+    border-radius: 28px;
+    padding: 40px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    position: relative;
+    overflow:hidden;
+    min-height: 340px;
+    gap: 22px;
+  }
+  .now-card::before{
+    content:"";
+    position:absolute;
+    top:-40%; right:-20%;
+    width: 60%; height: 140%;
+    background: radial-gradient(circle, rgba(242,166,90,0.16) 0%, rgba(242,166,90,0) 70%);
+  }
+  .now-eyebrow{
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--current);
+    letter-spacing: 0.08em;
+    z-index:1;
+  }
+  .now-time{
+    font-family: var(--mono);
+    font-size: clamp(44px, 7.5vw, 84px);
+    font-weight: 700;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    z-index:1;
+  }
+  .now-label{
+    font-size: clamp(30px, 5vw, 52px);
+    font-weight: 700;
+    z-index:1;
+    line-height:1.1;
+  }
+  .now-meta{
+    font-family: var(--mono);
+    font-size: 14px;
+    color: var(--text-dim);
+    z-index:1;
+  }
+
+  .side{
+    flex: 1;
+    display:flex;
+    flex-direction:column;
+    gap: 10px;
+    min-width: 260px;
+  }
+
+  .group-label{
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 0.08em;
+    margin: 6px 2px 0 2px;
+  }
+
+  .task-row{
+    display:flex;
+    align-items:center;
+    gap: 14px;
+    background: var(--bg-card);
+    border: 1px solid #262b3a;
+    border-radius: 999px;
+    padding: 10px 18px;
+  }
+  .task-row .time{
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--text-dim);
+    min-width: 44px;
+  }
+  .task-row .label{
+    font-size: 13px;
+    color: var(--text-dim);
+    flex:1;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+
+  .task-row.past{ opacity: 0.55; }
+  .task-row.past .label{ text-decoration: line-through; text-decoration-color: #4a4f60; }
+
+  .task-row.next{
+    border-radius: 20px;
+    border-color: var(--next-dim);
+    background: linear-gradient(120deg, rgba(95,201,184,0.14), rgba(95,201,184,0.03));
+    padding: 18px 22px;
+  }
+  .task-row.next .time{ color: var(--next); font-size: 16px; }
+  .task-row.next .label{ color: var(--text); font-size: 17px; font-weight: 600; white-space: normal; }
+  .task-row.next .next-tag{
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--next);
+    letter-spacing: 0.08em;
+    display:block;
+  }
+
+  .empty-hint{
+    font-size: 13px;
+    color: var(--text-dim);
+    padding: 12px 18px;
+  }
+
+  .scroll-block{
+    display:flex;
+    flex-direction:column;
+    gap: 8px;
+    overflow-y:auto;
+    max-height: 160px;
+    padding-right: 2px;
+  }
+  .scroll-block::-webkit-scrollbar{ width:6px; }
+  .scroll-block::-webkit-scrollbar-thumb{ background:#2c3143; border-radius:4px; }
+
+  /* Modal */
+  .overlay{
+    position: fixed; inset:0;
+    background: rgba(8,9,14,0.72);
+    display:none;
+    align-items:center; justify-content:center;
+    z-index: 50;
+    padding: 20px;
+  }
+  .overlay.open{ display:flex; }
+  .modal{
+    background: var(--bg-card);
+    border: 1px solid #2c3143;
+    border-radius: 20px;
+    width: 100%;
+    max-width: 460px;
+    max-height: 86vh;
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+  }
+  .modal-head{
+    padding: 20px 22px 14px 22px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    border-bottom: 1px solid #262b3a;
+  }
+  .modal-head h2{ margin:0; font-size:16px; font-weight:600; }
+  .modal-body{
+    padding: 16px 22px;
+    overflow-y:auto;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  .edit-row{
+    display:flex;
+    gap: 8px;
+    align-items:center;
+  }
+  .edit-row input[type="time"]{
+    font-family: var(--mono);
+    background: var(--bg-card-2);
+    border: 1px solid #303649;
+    color: var(--text);
+    border-radius: 8px;
+    padding: 9px 8px;
+    width: 108px;
+    font-size: 13px;
+  }
+  .edit-row input[type="text"]{
+    flex:1;
+    background: var(--bg-card-2);
+    border: 1px solid #303649;
+    color: var(--text);
+    border-radius: 8px;
+    padding: 9px 10px;
+    font-size: 13px;
+    font-family: var(--sans);
+    min-width: 0;
+  }
+  .edit-row input:focus{ outline: 2px solid var(--next-dim); outline-offset: 1px; }
+  .del-btn{
+    background: transparent;
+    border: none;
+    color: var(--text-dim);
+    cursor:pointer;
+    width: 30px; height:30px;
+    border-radius: 7px;
+    display:flex; align-items:center; justify-content:center;
+    flex-shrink:0;
+  }
+  .del-btn:hover{ background: rgba(226,102,90,0.14); color: var(--danger); }
+
+  .modal-foot{
+    padding: 16px 22px 22px 22px;
+    display:flex;
+    gap:10px;
+    border-top: 1px solid #262b3a;
+  }
+  .btn{
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 10px;
+    padding: 11px 16px;
+    border: 1px solid #303649;
+    background: var(--bg-card-2);
+    color: var(--text);
+    cursor:pointer;
+    flex:1;
+  }
+  .btn:hover{ background:#2a3143; }
+  .btn.primary{
+    background: var(--current);
+    border-color: var(--current);
+    color: #241605;
+  }
+  .btn.primary:hover{ filter: brightness(1.06); }
+  .btn.add{
+    background: transparent;
+    border: 1px dashed #3a4054;
+    color: var(--text-dim);
+  }
+  .btn.add:hover{ color: var(--text); border-color: #4a516a; }
+
+  .icon-btn.muted{ color: var(--text-dim); }
+  .icon-btn.muted svg{ opacity: 0.5; }
+
+  .volume-slider{
+    -webkit-appearance: none;
+    appearance: none;
+    width: 84px;
+    height: 4px;
+    border-radius: 999px;
+    background: #2c3143;
+    outline: none;
+    cursor: pointer;
+    align-self: center;
+  }
+  .volume-slider::-webkit-slider-thumb{
+    -webkit-appearance: none;
+    appearance: none;
+    width: 15px; height: 15px;
+    border-radius: 50%;
+    background: var(--current);
+    cursor: pointer;
+    border: 2px solid #12141c;
+  }
+  .volume-slider::-moz-range-thumb{
+    width: 13px; height: 13px;
+    border-radius: 50%;
+    background: var(--current);
+    cursor: pointer;
+    border: 2px solid #12141c;
+  }
+  .header-controls{
+    display:flex;
+    align-items:center;
+    gap: 10px;
+  }
+  @media (max-width: 480px){
+    .volume-slider{ width: 56px; }
+  }
+
+  .save-note{
+    font-size: 11px;
+    color: var(--text-dim);
+    text-align:center;
+    padding: 0 22px 14px 22px;
+    margin-top:-6px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Routine <span>clock</span></h1>
+  <div class="header-controls">
+    <button class="icon-btn" id="soundBtn" title="Toggle alarm sound" aria-label="Toggle alarm sound">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" id="soundIcon">
+        <path d="M11 5 6 9H2v6h4l5 4V5Z"></path>
+        <path d="M15.5 8.5a5 5 0 0 1 0 7"></path>
+        <path d="M18.5 5.5a9 9 0 0 1 0 13"></path>
+      </svg>
+    </button>
+    <input type="range" id="volumeSlider" class="volume-slider" min="0" max="100" value="70" title="Alarm volume" aria-label="Alarm volume">
+    <button class="icon-btn" id="fullscreenBtn" title="Full screen" aria-label="Toggle full screen">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" id="fullscreenIcon">
+        <path d="M8 3H5a2 2 0 0 0-2 2v3"></path>
+        <path d="M21 8V5a2 2 0 0 0-2-2h-3"></path>
+        <path d="M3 16v3a2 2 0 0 0 2 2h3"></path>
+        <path d="M16 21h3a2 2 0 0 0 2-2v-3"></path>
+      </svg>
+    </button>
+    <button class="icon-btn" id="settingsBtn" title="Edit schedule" aria-label="Edit schedule">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"></circle>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+      </svg>
+    </button>
+  </div>
+</header>
+
+<main>
+  <section class="now-card">
+    <div>
+      <div class="now-eyebrow">CURRENT TASK</div>
+      <div class="now-time" id="nowTime">--:--</div>
+      <div class="now-label" id="nowLabel">Loading&hellip;</div>
+    </div>
+    <div class="now-meta" id="nowMeta"></div>
+  </section>
+
+  <aside class="side" id="side">
+    <!-- filled by JS -->
+  </aside>
+</main>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h2>Edit schedule</h2>
+      <button class="icon-btn" id="closeBtn" aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="modal-body" id="editRows"></div>
+    <div style="padding: 0 22px 16px 22px;">
+      <button class="btn add" id="addRowBtn">+ Add task</button>
+    </div>
+    <div class="save-note">Times are 24-hour. Tasks are ordered automatically by time.</div>
+    <div class="modal-foot">
+      <button class="btn" id="resetBtn">Reset to default</button>
+      <button class="btn primary" id="saveBtn">Save schedule</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = 'schedule';
+const DEFAULT_TASKS = [
+  { time: '06:00', label: 'Wake up' },
+  { time: '06:10', label: 'Shower' },
+  { time: '06:30', label: 'Put on lotion' },
+  { time: '06:35', label: 'Put on clothes' },
+  { time: '06:40', label: 'Put on shoes and socks' },
+];
+
+let tasks = [];
+let alarmVolume = 0.7;
+let lastNonZeroVolume = 0.7;
+let lastCurrentId; // undefined until first render, so we never announce on page load
+
+function uid(){ return Math.random().toString(36).slice(2, 9); }
+
+function sortTasks(list){
+  return [...list].sort((a,b) => a.time.localeCompare(b.time));
+}
+
+// Storage helper: uses the Claude artifact storage API when available (in-preview),
+// and falls back to the browser's own localStorage when this file is opened as a
+// standalone page (e.g. downloaded and opened directly, or hosted elsewhere) so
+// schedule/volume changes always survive a refresh.
+async function storageGet(key){
+  if(window.storage && typeof window.storage.get === 'function'){
+    try{
+      const res = await window.storage.get(key, false);
+      return res ? res.value : null;
+    }catch(e){ /* key not found or API unavailable, fall through */ }
+  }
+  try{ return localStorage.getItem(key); }catch(e){ return null; }
+}
+
+async function storageSet(key, value){
+  if(window.storage && typeof window.storage.set === 'function'){
+    try{ await window.storage.set(key, value, false); return; }catch(e){ /* fall through */ }
+  }
+  try{ localStorage.setItem(key, value); }catch(e){ console.error('Could not persist', key, e); }
+}
+
+async function loadTasks(){
+  try{
+    const value = await storageGet(STORAGE_KEY);
+    if(value){
+      const parsed = JSON.parse(value);
+      if(Array.isArray(parsed) && parsed.length){
+        tasks = sortTasks(parsed.map(t => ({ id: t.id || uid(), time: t.time, label: t.label })));
+        return;
+      }
+    }
+    tasks = sortTasks(DEFAULT_TASKS.map(t => ({ id: uid(), ...t })));
+  }catch(e){
+    tasks = sortTasks(DEFAULT_TASKS.map(t => ({ id: uid(), ...t })));
+  }
+}
+
+async function saveTasks(){
+  await storageSet(STORAGE_KEY, JSON.stringify(tasks));
+}
+
+function nowHHMM(){
+  const d = new Date();
+  return d.toTimeString().slice(0,5);
+}
+
+function nowHHMMSS(){
+  const d = new Date();
+  return d.toTimeString().slice(0,8);
+}
+
+function timeToMinutes(hhmm){
+  const [h, m] = hhmm.split(':').map(Number);
+  return h * 60 + m;
+}
+
+function computeStatus(){
+  if(tasks.length === 0) return { currentIdx: -1, nextIdx: -1 };
+  const now = nowHHMM();
+  let currentIdx = -1;
+  for(let i = 0; i < tasks.length; i++){
+    if(tasks[i].time <= now) currentIdx = i;
+  }
+  // If now is before the first task, the "current" task wraps to the last task of the day before
+  if(currentIdx === -1) currentIdx = tasks.length - 1;
+  const nextIdx = (currentIdx + 1) % tasks.length;
+  return { currentIdx, nextIdx };
+}
+
+function fmtRange(list){ return list; }
+
+// ---- Alarm + voice announcement on task transition ----
+let audioCtx = null;
+
+function playAlarm(durationMs = 10000){
+  if(alarmVolume <= 0) return;
+  try{
+    if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if(audioCtx.state === 'suspended') audioCtx.resume();
+    const beepLen = 160, gap = 340;
+    const peakGain = 0.32 * alarmVolume;
+    let elapsed = 0;
+    (function beep(){
+      if(elapsed >= durationMs) return;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = 880;
+      const t0 = audioCtx.currentTime;
+      gain.gain.setValueAtTime(0.0001, t0);
+      gain.gain.linearRampToValueAtTime(peakGain, t0 + 0.015);
+      gain.gain.linearRampToValueAtTime(0.0001, t0 + beepLen / 1000);
+      osc.connect(gain).connect(audioCtx.destination);
+      osc.start(t0);
+      osc.stop(t0 + beepLen / 1000);
+      elapsed += beepLen + gap;
+      setTimeout(beep, beepLen + gap);
+    })();
+  }catch(e){ console.error('Alarm playback failed', e); }
+}
+
+function announceTransition(text){
+  if(alarmVolume <= 0 || !('speechSynthesis' in window)) return;
+  try{
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.rate = 1;
+    utter.pitch = 1;
+    utter.volume = alarmVolume;
+    window.speechSynthesis.cancel(); // clear any queued speech
+    window.speechSynthesis.speak(utter);
+  }catch(e){ console.error('Speech announcement failed', e); }
+}
+
+function handleTransition(prevTask, newTask, durationMinutes){
+  const timeStr = nowHHMM();
+  const prevLabel = prevTask ? prevTask.label : 'Previous task';
+  const durationText = durationMinutes != null ? `, ${durationMinutes} minute${durationMinutes === 1 ? '' : 's'} till it ends` : '';
+  const message = `${timeStr} then ${prevLabel} completed, starting ${newTask.label}${durationText}`;
+  playAlarm(10000);
+  announceTransition(message);
+}
+
+function render(){
+  const { currentIdx, nextIdx } = computeStatus();
+  const current = tasks[currentIdx];
+  const next = nextIdx !== currentIdx ? tasks[nextIdx] : null;
+
+  const currentId = current ? current.id : null;
+  if(lastCurrentId !== undefined && currentId !== null && currentId !== lastCurrentId){
+    const prevTask = tasks.find(t => t.id === lastCurrentId);
+    // Minutes until the task that just started ("current") ends, i.e. until "next" begins.
+    // With only one task total there is no distinct next task, so it runs until it repeats (24h).
+    const durationMinutes = next
+      ? (timeToMinutes(next.time) - timeToMinutes(current.time) + 1440) % 1440
+      : 1440;
+    handleTransition(prevTask, current, durationMinutes);
+  }
+  lastCurrentId = currentId;
+
+  document.getElementById('nowTime').textContent = nowHHMMSS();
+  document.getElementById('nowLabel').textContent = current ? current.label : 'No tasks yet';
+  document.getElementById('nowMeta').textContent = current ? `since ${current.time}` : 'Add a task to get started';
+
+  const side = document.getElementById('side');
+  side.innerHTML = '';
+
+  if(tasks.length === 0){
+    side.innerHTML = '<div class="empty-hint">No tasks scheduled. Tap the gear icon to add your routine.</div>';
+    return;
+  }
+
+  // Classify every remaining task by real elapsed/remaining time, not array position:
+  // within the last 12h -> completed, within the next 12h -> upcoming.
+  const nowMinutes = timeToMinutes(nowHHMM());
+  const past = [];
+  const upcoming = [];
+  for(let i = 0; i < tasks.length; i++){
+    if(i === currentIdx || i === nextIdx) continue;
+    const taskMinutes = timeToMinutes(tasks[i].time);
+    const minutesSince = (nowMinutes - taskMinutes + 1440) % 1440; // how long ago this time last occurred
+    if(minutesSince <= 720) past.push(tasks[i]); else upcoming.push(tasks[i]);
+  }
+  // Keep chronological order within each group (most recently completed last, soonest upcoming first)
+  past.sort((a,b) => ((nowMinutes - timeToMinutes(b.time) + 1440) % 1440) - ((nowMinutes - timeToMinutes(a.time) + 1440) % 1440));
+  upcoming.sort((a,b) => ((timeToMinutes(a.time) - nowMinutes + 1440) % 1440) - ((timeToMinutes(b.time) - nowMinutes + 1440) % 1440));
+
+  if(past.length){
+    const label = document.createElement('div');
+    label.className = 'group-label';
+    label.textContent = 'COMPLETED';
+    side.appendChild(label);
+
+    const block = document.createElement('div');
+    block.className = 'scroll-block';
+    past.forEach(t => {
+      const row = document.createElement('div');
+      row.className = 'task-row past';
+      row.innerHTML = `<span class="time">${t.time}</span><span class="label">${escapeHtml(t.label)}</span>`;
+      block.appendChild(row);
+    });
+    side.appendChild(block);
+  }
+
+  if(next){
+    const row = document.createElement('div');
+    row.className = 'task-row next';
+    row.innerHTML = `<div style="flex:1;"><span class="next-tag">COMING UP NEXT</span><span class="label">${escapeHtml(next.label)}</span></div><span class="time">${next.time}</span>`;
+    side.appendChild(row);
+  }
+
+  if(upcoming.length){
+    const label = document.createElement('div');
+    label.className = 'group-label';
+    label.textContent = 'LATER';
+    side.appendChild(label);
+
+    upcoming.forEach(t => {
+      const row = document.createElement('div');
+      row.className = 'task-row';
+      row.innerHTML = `<span class="time">${t.time}</span><span class="label">${escapeHtml(t.label)}</span>`;
+      side.appendChild(row);
+    });
+  }
+}
+
+function escapeHtml(str){
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+// ---- Settings modal ----
+const overlay = document.getElementById('overlay');
+const editRows = document.getElementById('editRows');
+
+function openModal(){
+  buildEditRows();
+  overlay.classList.add('open');
+}
+function closeModal(){ overlay.classList.remove('open'); }
+
+function buildEditRows(){
+  editRows.innerHTML = '';
+  const draft = sortTasks(tasks).map(t => ({...t}));
+  draft.forEach(t => addEditRow(t));
+  editRows.dataset.count = draft.length;
+}
+
+function addEditRow(task){
+  const row = document.createElement('div');
+  row.className = 'edit-row';
+  row.dataset.id = task.id || uid();
+  row.innerHTML = `
+    <input type="time" value="${task.time || '06:00'}">
+    <input type="text" placeholder="Task name" value="${task.label ? escapeAttr(task.label) : ''}">
+    <button class="del-btn" title="Remove task">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/></svg>
+    </button>
+  `;
+  row.querySelector('.del-btn').addEventListener('click', () => row.remove());
+  editRows.appendChild(row);
+}
+
+function escapeAttr(str){
+  return str.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+document.getElementById('settingsBtn').addEventListener('click', openModal);
+document.getElementById('closeBtn').addEventListener('click', closeModal);
+overlay.addEventListener('click', (e) => { if(e.target === overlay) closeModal(); });
+
+document.getElementById('addRowBtn').addEventListener('click', () => {
+  addEditRow({ id: uid(), time: '06:00', label: '' });
+});
+
+document.getElementById('resetBtn').addEventListener('click', () => {
+  editRows.innerHTML = '';
+  DEFAULT_TASKS.forEach(t => addEditRow({ id: uid(), ...t }));
+});
+
+document.getElementById('saveBtn').addEventListener('click', async () => {
+  const rows = [...editRows.querySelectorAll('.edit-row')];
+  const newTasks = rows.map(row => {
+    const time = row.querySelector('input[type="time"]').value || '00:00';
+    const label = row.querySelector('input[type="text"]').value.trim() || 'Untitled task';
+    return { id: row.dataset.id, time, label };
+  }).filter(t => t.label);
+
+  if(newTasks.length === 0){
+    alert('Add at least one task before saving.');
+    return;
+  }
+  tasks = sortTasks(newTasks);
+  await saveTasks();
+  render();
+  closeModal();
+});
+
+// ---- Sound / volume controls ----
+const soundBtn = document.getElementById('soundBtn');
+const volumeSlider = document.getElementById('volumeSlider');
+
+function updateSoundIcon(){
+  const muted = alarmVolume <= 0;
+  soundBtn.classList.toggle('muted', muted);
+  soundBtn.title = muted ? 'Alarm sound off (tap to unmute)' : 'Alarm sound on (tap to mute)';
+  volumeSlider.value = Math.round(alarmVolume * 100);
+}
+
+function unlockAudio(){
+  try{
+    if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if(audioCtx.state === 'suspended') audioCtx.resume();
+  }catch(e){}
+}
+
+soundBtn.addEventListener('click', async () => {
+  if(alarmVolume > 0){
+    lastNonZeroVolume = alarmVolume;
+    alarmVolume = 0;
+  }else{
+    alarmVolume = lastNonZeroVolume || 0.7;
+    unlockAudio();
+  }
+  updateSoundIcon();
+  await storageSet('alarmVolume', JSON.stringify(alarmVolume));
+});
+
+volumeSlider.addEventListener('input', () => {
+  alarmVolume = Number(volumeSlider.value) / 100;
+  if(alarmVolume > 0) lastNonZeroVolume = alarmVolume;
+  soundBtn.classList.toggle('muted', alarmVolume <= 0);
+  soundBtn.title = alarmVolume <= 0 ? 'Alarm sound off (tap to unmute)' : 'Alarm sound on (tap to mute)';
+});
+
+volumeSlider.addEventListener('change', async () => {
+  unlockAudio();
+  await storageSet('alarmVolume', JSON.stringify(alarmVolume));
+  playAlarm(500); // brief preview so you can hear the level you just picked
+});
+
+// ---- Full screen ----
+const fullscreenBtn = document.getElementById('fullscreenBtn');
+
+function toggleFullscreen(){
+  if(!document.fullscreenElement){
+    document.documentElement.requestFullscreen().catch(() => {});
+  }else{
+    document.exitFullscreen().catch(() => {});
+  }
+}
+
+fullscreenBtn.addEventListener('click', toggleFullscreen);
+document.addEventListener('fullscreenchange', () => {
+  fullscreenBtn.title = document.fullscreenElement ? 'Exit full screen' : 'Full screen';
+});
+
+// ---- Keep the screen awake while this page is open ----
+let wakeLock = null;
+
+async function requestWakeLock(){
+  try{
+    if('wakeLock' in navigator){
+      wakeLock = await navigator.wakeLock.request('screen');
+    }
+  }catch(e){ /* unsupported or denied — silently ignore */ }
+}
+
+document.addEventListener('visibilitychange', async () => {
+  if(document.visibilityState === 'visible') await requestWakeLock();
+});
+
+// ---- Init ----
+(async function init(){
+  await loadTasks();
+  try{
+    const savedVolume = await storageGet('alarmVolume');
+    if(savedVolume !== null && savedVolume !== undefined){
+      alarmVolume = JSON.parse(savedVolume);
+      if(alarmVolume > 0) lastNonZeroVolume = alarmVolume;
+    }
+  }catch(e){ /* default stays 0.7 */ }
+  updateSoundIcon();
+  requestWakeLock();
+  render();
+  setInterval(render, 1000 * 5); // refresh every 5s so task transitions (and the alarm) trigger promptly
+  setInterval(() => { document.getElementById('nowTime').textContent = nowHHMMSS(); }, 1000);
+})();
+</script>
+
+</body>
+</html>
